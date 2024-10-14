@@ -1,0 +1,21 @@
+version: 0.2
+
+phases:
+  install:
+    commands:
+      - echo "Installing dependencies if any..."
+      # Install Python dependencies here if needed
+  build:
+    commands:
+      - echo "Starting build..."
+      - echo "X Value: $X_VALUE"
+      - echo "Y Value: $Y_VALUE"
+      # List the contents of the working directory to verify the script is pulled from GitHub
+      - ls
+      # Ensure the Python script is present and run it
+      - python tenant/modelmonitoring/test-xfactrs-summation.py $X_VALUE $Y_VALUE  # Replace path/to/test-xfactrs-summation.py with the actual path to the Python script in the repo
+
+artifacts:
+  files:
+    - '**/*'
+
