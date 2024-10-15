@@ -33,7 +33,7 @@ Resources:
     Condition: CreateNewBucket
     DeletionPolicy: Retain
     Properties:
-      BucketName: "test-xfactrs-devst-sagemaker" 
+      BucketName: 'test-xfactrs-devst-sagemaker-new9'
 
   ModelBuildGitHubConnection:
     Type: 'AWS::CodeStarConnections::Connection'
@@ -97,7 +97,7 @@ Resources:
   LambdaExecutionRole:
     Type: 'AWS::IAM::Role'
     Properties:
-      RoleName: !Sub 'test-LambdaExecutionRole-${AWS::AccountId}'
+      RoleName: !Sub 'test-LambdaExecutionRole-${SageMakerProjectName}-${AWS::AccountId}'
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
         Statement:
@@ -152,12 +152,12 @@ Resources:
   MyLambdaFunction:
     Type: 'AWS::Lambda::Function'
     Properties: 
-      FunctionName: "test-xfactrs-cross-account-deployment"
+      FunctionName: !Sub "test-xfactrs-${SageMakerProjectName}-cross-account-deployment"
       Runtime: python3.9
       Role: !GetAtt LambdaExecutionRole.Arn
       Handler: index.lambda_handler
       Code:
-        S3Bucket: "test-xfactrs-devst-sagemaker"
+        S3Bucket: "test-xfactrs-devst-sagemaker-new9"
         S3Key: "lambda_function/xfactrs_trigger_eventbridge_rule_lambda.zip"
       MemorySize: 128
       Timeout: 300
@@ -191,8 +191,8 @@ Resources:
                 Version: 1
               Configuration:
                 ConnectionArn: !Ref ModelBuildGitHubConnection
-                FullRepositoryId: '{{resolve:secretsmanager:GitHubSecrets:SecretString:OwnerRepo}}'
-                BranchName: '{{resolve:secretsmanager:GitHubSecrets:SecretString:Branch}}'
+                FullRepositoryId: !Sub '{{resolve:secretsmanager:${GitHubSecretName}:SecretString:OwnerRepo}}'
+                BranchName: !Sub '{{resolve:secretsmanager:${GitHubSecretName}:SecretString:branch}}'
               OutputArtifacts:
                 - Name: ModelBuildSourceArtifact
         - Name: Build
@@ -419,7 +419,7 @@ Resources:
   MLMonitoringBuildProject:
     Type: 'AWS::CodeBuild::Project'
     Properties:
-      Name: "test-ml-monitoring-buildProject"
+      Name: !Sub "test-ml-${SageMakerProjectName}-monitoring-buildProject"
       Description: >-
         Run the scripts which fetched from Github Repo for monitroing.
       ServiceRole: !Join
@@ -444,7 +444,7 @@ Resources:
     Type: 'AWS::CodePipeline::Pipeline'
     DependsOn: MlOpsArtifactsBucket
     Properties:
-      Name: "test-ml-monitoring-pipeline"
+      Name: !Sub "test-ml-${SageMakerProjectName}-monitoring-pipeline"
       RoleArn: !Join
         - ':'
         - - arn
