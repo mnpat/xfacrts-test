@@ -38,7 +38,7 @@ Resources:
   ModelBuildGitHubConnection:
     Type: 'AWS::CodeStarConnections::Connection'
     Properties:
-      ConnectionName: !Sub 'test-xfactrs-training-deployment-github-connection'
+      ConnectionName: !Sub 'test-xfactrs-git-connection'
       ProviderType: GitHub
 
   SageMakerModelPipelineBuildProject:
