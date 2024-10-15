@@ -48,9 +48,7 @@ phases:
         # Change directory
         # - cd tenant/modeldeploy
         
-        # copy xfactrs-sagemaker-pipeline-eventbridge.zip file to s3 bucket.
-        - aws s3 cp tenant/modelmonitoring/xfactrs-sagemaker-pipeline-eventbridge.zip s3://${ml_s3_bucket}/lambda_function/xfactrs-sagemaker-pipeline-eventbridge.zip
-
+      
 
 artifacts:
   files:
