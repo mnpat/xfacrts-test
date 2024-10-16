@@ -18,9 +18,20 @@ Parameters:
     Type: String
     Description: Name of the S3 bucket to store ML Ops artifacts. If left blank, a new bucket will be created.
     Default: "NA"
-  GitHubSecretName:
+  GitHubOwner:
     Type: String
-    Description: Name of the Secrets Manager secret containing GitHub information
+    Description: 'GitHub repository owner'
+  GitHubRepo:
+    Type: String
+    Description: 'GitHub repository name'
+  GitHubBranch:
+    Type: String
+    Description: 'Branch of the GitHub repository'
+  GithubConnArn:
+    Type: String
+    Description: 'Connection ARN'
+
+ 
 
 Conditions:
   CreateNewBucket: !Equals 
@@ -33,13 +44,7 @@ Resources:
     Condition: CreateNewBucket
     DeletionPolicy: Retain
     Properties:
-      BucketName: 'test-xfactrs-devst-sagemaker-new9'
-
-  ModelBuildGitHubConnection:
-    Type: 'AWS::CodeStarConnections::Connection'
-    Properties:
-      ConnectionName: "xfactrs-git-conn"
-      ProviderType: GitHub
+      BucketName: 'test-xfactrs-devst-sagemaker23'
 
   SageMakerModelPipelineBuildProject:
     Type: 'AWS::CodeBuild::Project'
@@ -152,13 +157,57 @@ Resources:
   MyLambdaFunction:
     Type: 'AWS::Lambda::Function'
     Properties: 
-      FunctionName: !Sub "test-xfactrs-${SageMakerProjectName}-cross-account-deployment"
+      FunctionName: !Sub 'test-xfactrs-${SageMakerProjectName}-cross-account-deployment'
       Runtime: python3.9
       Role: !GetAtt LambdaExecutionRole.Arn
       Handler: index.lambda_handler
       Code:
-        S3Bucket: "test-xfactrs-devst-sagemaker-new9"
-        S3Key: "lambda_function/xfactrs_trigger_eventbridge_rule_lambda.zip"
+        ZipFile: |
+          import boto3
+          import json
+          import zipfile
+          
+          def lambda_handler(event, context):
+              clients = boto3.client("events")
+              s3 = boto3.client('s3')
+              code_pipeline = boto3.client('codepipeline')
+
+              print("Event: ", event)
+              
+              bucket_name = event['CodePipeline.job']['data']['inputArtifacts'][0]['location']['s3Location']['bucketName']
+              object_path_key = event['CodePipeline.job']['data']['inputArtifacts'][0]['location']['s3Location']['objectKey']
+              job_id = event['CodePipeline.job']['id']
+              revision = event['CodePipeline.job']['data']['inputArtifacts'][0]['revision']
+              s3_artifact_path = f's3://{bucket_name}/{object_path_key}'
+
+              path = {"bucket": bucket_name, "key": object_path_key}
+              s3_artifact_path = json.dumps(path)
+              
+              response = clients.put_events(
+                  Entries=[
+                      {
+                          'Source': 'xfactrs-sagemaker-lambda-events',
+                          'DetailType': 'sagemaker-PipelineType',
+                          'Detail': s3_artifact_path,
+                          'EventBusName': 'default'
+                      }
+                  ]
+              )
+              
+              print("response from eventbridge put_event: ", response)
+              
+              if response['ResponseMetadata']['HTTPStatusCode'] == 200:
+                  code_pipeline.put_job_success_result(jobId=job_id)
+              else:
+                  code_pipeline.put_job_failure_result(
+                      jobId=job_id,
+                      failureDetails={
+                          'type': 'JobFailed',
+                          'message': 'Lambda failed'
+                      }
+                  )
+
+              return response
       MemorySize: 128
       Timeout: 300
       Environment:
@@ -190,9 +239,9 @@ Resources:
                 Provider: CodeStarSourceConnection
                 Version: 1
               Configuration:
-                ConnectionArn: !Ref ModelBuildGitHubConnection
-                FullRepositoryId: !Sub '{{resolve:secretsmanager:${GitHubSecretName}:SecretString:OwnerRepo}}'
-                BranchName: !Sub '{{resolve:secretsmanager:${GitHubSecretName}:SecretString:branch}}'
+                ConnectionArn: !Sub '${GithubConnArn}'
+                FullRepositoryId: !Sub '${GitHubOwner}/${GitHubRepo}'
+                BranchName: !Sub '${GitHubBranch}'
               OutputArtifacts:
                 - Name: ModelBuildSourceArtifact
         - Name: Build
@@ -331,9 +380,9 @@ Resources:
                 Provider: CodeStarSourceConnection
                 Version: 1
               Configuration:
-                ConnectionArn: !Ref ModelBuildGitHubConnection
-                FullRepositoryId: !Sub '{{resolve:secretsmanager:${GitHubSecretName}:SecretString:owner}}/{{resolve:secretsmanager:${GitHubSecretName}:SecretString:repo}}'
-                BranchName: !Sub '{{resolve:secretsmanager:${GitHubSecretName}:SecretString:branch}}'
+                ConnectionArn: !Sub '${GithubConnArn}'
+                FullRepositoryId: !Sub '${GitHubOwner}/${GitHubRepo}'
+                BranchName: !Sub '${GitHubBranch}'
               OutputArtifacts:
                 - Name: SourceArtifact
         - Name: Build
@@ -407,13 +456,13 @@ Resources:
               InputArtifacts:
                 - Name: BuildArtifact
               ActionTypeId:
-                Category: Deploy
+                Category: Invoke
                 Owner: AWS
                 Version: 1
                 Provider: Lambda
               Configuration:
                 FunctionName: !Ref MyLambdaFunction
-                RoleArn: !GetAtt LambdaExecutionRole.Arn
+
               RunOrder: 1
 
   MLMonitoringBuildProject:
@@ -465,9 +514,9 @@ Resources:
                 Provider: CodeStarSourceConnection
                 Version: 1
               Configuration:
-                ConnectionArn: !Ref ModelBuildGitHubConnection
-                FullRepositoryId: !Sub '{{resolve:secretsmanager:${GitHubSecretName}:SecretString:owner}}/{{resolve:secretsmanager:${GitHubSecretName}:SecretString:repo}}'
-                BranchName: !Sub '{{resolve:secretsmanager:${GitHubSecretName}:SecretString:branch}}'
+                ConnectionArn: !Sub '${GithubConnArn}'
+                FullRepositoryId: !Sub '${GitHubOwner}/${GitHubRepo}'
+                BranchName: !Sub '${GitHubBranch}'
               OutputArtifacts:
                 - Name: SourceArtifact
         - Name: Build
@@ -485,5 +534,15 @@ Resources:
               Configuration:
                 ProjectName: !Ref MLMonitoringBuildProject
               RunOrder: 1
+  MyEventRule:
+    Type: 'AWS::Events::Rule'
+    Properties:
+      Name: !Sub "xfactrs-${SageMakerProjectName}-crossaccount-deploy" 
+      EventBusName: "default"  
+      EventPattern:
+        source:
+          - "xfactrs-sagemaker-lambda-events"  
+      State: "ENABLED"  
+      
 
 Rules: {}
