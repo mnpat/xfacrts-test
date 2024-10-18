@@ -1,16 +1,16 @@
-version: 0.2
+version: '0.2'
 
 phases:
   install:
     commands:
-      - echo "Installing dependencies if any..."
+      - "echo 'Installing dependencies if any...'"
   build:
     commands:
-      - echo "Starting build..."
-      - echo "X Value: $X_VALUE"
-      - echo "Y Value: $Y_VALUE"
-      - ls
-      - python tenant/modelmonitoring/test-xfactrs-summation.py $X_VALUE $Y_VALUE
+      - "echo 'Starting build...'"
+      - "echo 'X Value: 10'"
+      - "echo 'Y Value: 20'"
+      - "ls"
+      - "python tenant/modelmonitoring/test-xfactrs-summation.py 10 20"
 
 artifacts:
   files:
