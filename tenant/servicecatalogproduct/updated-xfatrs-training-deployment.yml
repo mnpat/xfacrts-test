@@ -44,7 +44,7 @@ Resources:
     Condition: CreateNewBucket
     DeletionPolicy: Retain
     Properties:
-      BucketName: 'test-xfactrs-devst-sagemaker23'
+      BucketName: 'test-xfactrs-devst-sagemaker24'
 
   SageMakerModelPipelineBuildProject:
     Type: 'AWS::CodeBuild::Project'
@@ -96,7 +96,7 @@ Resources:
                 - !Sub 'project/${SageMakerProjectName}'
       Source:
         Type: CODEPIPELINE
-        BuildSpec: codebuild-buildspec.yml
+        BuildSpec: tenant/modelbuild/codebuild-buildspec.yml
       TimeoutInMinutes: 480
 
   LambdaExecutionRole:
@@ -318,7 +318,7 @@ Resources:
             Value: prod-config-export.json
       Source:
         Type: CODEPIPELINE
-        BuildSpec: buildspec.yml
+        BuildSpec: tenant/modeldeploy/buildspec.yml
       TimeoutInMinutes: 30
 
   ModelDeployTestProject:
@@ -352,7 +352,7 @@ Resources:
             Value: test-results.json
       Source:
         Type: CODEPIPELINE
-        BuildSpec: test/buildspec.yml
+        BuildSpec: tenant/modeldeploy/test/buildspec.yml
       TimeoutInMinutes: 30
       
   ModelDeployPipeline:
