@@ -4,7 +4,7 @@ phases:
   install:
     commands:
       - echo "Installing dependencies if any..."
-      # Install Python dependencies here if needed
+      # If needed, include Python dependencies installation here
   build:
     commands:
       - echo "Starting build..."
@@ -13,9 +13,8 @@ phases:
       # List the contents of the working directory to verify the script is pulled from GitHub
       - ls
       # Ensure the Python script is present and run it
-      - python tenant/modelmonitoring/test-xfactrs-summation.py $X_VALUE $Y_VALUE  # Replace path/to/test-xfactrs-summation.py with the actual path to the Python script in the repo
+      - python tenant/modelmonitoring/test-xfactrs-summation.py $X_VALUE $Y_VALUE
 
 artifacts:
   files:
     - '**/*'
-
