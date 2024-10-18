@@ -7,10 +7,10 @@ phases:
   build:
     commands:
       - "echo 'Starting build...'"
-      - "echo 'X Value: 10'"
-      - "echo 'Y Value: 20'"
+      - "echo 'X Value: $X'"
+      - "echo 'Y Value: $Y'"
       - "ls"
-      - "python tenant/modelmonitoring/test-xfactrs-summation.py 10 20"
+      - "python tenant/modelmonitoring/test-xfactrs-summation.py $X $Y"
 
 artifacts:
   files:
