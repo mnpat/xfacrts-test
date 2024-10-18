@@ -1,9 +1,9 @@
 import sys
 
-def main(x, y):
+def main(X, Y):
     # Convert inputs to integers
-    x = int(x)
-    y = int(y)
+    x = int(X)
+    y = int(Y)
     
     # Perform the summation
     result = x + y
